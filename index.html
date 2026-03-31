@@ -3,46 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚡ Training Ultimate Pro</title>
+<title>⚡ Training Ultimate Pro 2.0</title>
 <style>
-body {
-  margin:0;
-  font-family:Arial,sans-serif;
-  background: linear-gradient(160deg,#0f172a,#020617);
-  color:white;
-  min-height:100vh;
-  overflow-x:hidden;
-}
-.container {
-  padding:20px;
-  max-width:500px;
-  margin:auto;
-  display:flex;
-  flex-direction:column;
-  gap:15px;
-}
+body { margin:0; font-family:Arial,sans-serif; background:linear-gradient(160deg,#0f172a,#020617); color:white; min-height:100vh; overflow-x:hidden; }
+.container { padding:20px; max-width:500px; margin:auto; display:flex; flex-direction:column; gap:15px; }
 h1 { text-align:center; font-size:28px; margin-bottom:15px; letter-spacing:1px; }
-.card {
-  background:rgba(30,41,59,0.95);
-  padding:15px;
-  border-radius:15px;
-  box-shadow:0 0 15px rgba(37,99,235,0.5);
-  margin-bottom:10px;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
+.card { background:rgba(30,41,59,0.95); padding:15px; border-radius:15px; box-shadow:0 0 15px rgba(37,99,235,0.5); margin-bottom:10px; transition: transform 0.2s, box-shadow 0.2s; }
 .card:hover { transform:scale(1.02); box-shadow:0 0 25px rgba(37,99,235,0.8); }
-button {
-  width:100%;
-  padding:14px;
-  margin-top:8px;
-  border:none;
-  border-radius:12px;
-  background:linear-gradient(135deg,#2563eb,#1d4ed8);
-  color:white;
-  font-size:16px;
-  cursor:pointer;
-  transition:0.2s;
-}
+button { width:100%; padding:14px; margin-top:8px; border:none; border-radius:12px; background:linear-gradient(135deg,#2563eb,#1d4ed8); color:white; font-size:16px; cursor:pointer; transition:0.2s; }
 button:hover { transform:scale(1.05); box-shadow:0 0 20px #22c55e; }
 .small-btn { background:#ef4444; font-size:12px; padding:6px; margin-top:5px; }
 .complete-btn { background:#22c55e; margin-top:5px; }
@@ -53,31 +21,39 @@ input { width:100%; padding:10px; border-radius:10px; border:none; margin-top:10
 .stat { font-size:16px; margin:5px 0; }
 .confetti { position:fixed;width:8px;height:8px;animation:fall 1s linear;border-radius:50%; z-index:9999; }
 .exercise-list { margin:5px 0; padding-left:15px; list-style-type:circle; }
-/* Animasjoner */
+/* Animations */
 @keyframes fall { to { transform:translateY(600px) rotate(360deg); opacity:0; } }
 @keyframes pulse { 0% { transform:scale(1); } 50% { transform:scale(1.05); } 100% { transform:scale(1); } }
 button:active { animation:pulse 0.3s; }
-/* Swipe hint */
 .swipe-hint { text-align:center; font-size:12px; color:#aaa; margin:5px 0; }
+.progress-bar { height:12px; border-radius:10px; background:#334155; overflow:hidden; margin:5px 0; }
+.progress-fill { height:100%; background:#22c55e; transition:width 0.3s; }
+.week-goal { font-size:14px; margin:5px 0; color:#facc15; }
 </style>
 </head>
 <body>
 <div class="container" id="app"></div>
 <script>
 (function(){
-  let screen='home', selectedDay=null, selectedWorkout=null;
+  let screen='home', selectedDay='Monday', selectedWorkout=null;
+  const days=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
   const initialWorkouts={Monday:[],Tuesday:[],Wednesday:[],Thursday:[],Friday:[],Saturday:[],Sunday:[]};
   const workouts=JSON.parse(localStorage.getItem('workouts'))||initialWorkouts;
   let formScore=parseInt(localStorage.getItem('formScore'))||5;
+  let weekGoal=parseInt(localStorage.getItem('weekGoal'))||5;
 
-  // --- Globale funksjoner ---
+  // --- Helpers ---
+  function save(){ localStorage.setItem('workouts',JSON.stringify(workouts)); localStorage.setItem('formScore',formScore); localStorage.setItem('weekGoal',weekGoal); }
+  function confetti(){ for(let i=0;i<30;i++){ const c=document.createElement('div'); c.className='confetti'; c.style.left=Math.random()*100+'%'; c.style.background=`hsl(${Math.random()*360},100%,50%)`; document.body.appendChild(c); setTimeout(()=>c.remove(),1200); } }
+
+  // --- Navigation ---
   window.go=function(s){ screen=s; render(); }
   window.selectDay=function(day){ selectedDay=day; screen='day'; render(); }
   window.selectWorkout=function(i){ selectedWorkout=i; screen='workoutDetail'; render(); }
   window.editDay=function(day){ selectedDay=day; screen='editDay'; render(); }
 
-  window.addWorkout=function(){
-    const name=document.getElementById('input');
+  window.addWorkout=function(){ 
+    const name=document.getElementById('input'); 
     const details=document.getElementById('detailsInput');
     if(!name||!name.value) return;
     workouts[selectedDay]=workouts[selectedDay]||[];
@@ -90,41 +66,43 @@ button:active { animation:pulse 0.3s; }
     const exInput=document.getElementById('exerciseInput'+index);
     if(!exInput||!exInput.value) return;
     workouts[selectedDay][index].exercises.push(exInput.value);
-    exInput.value='';
-    save(); render();
+    exInput.value=''; save(); render();
   }
 
   window.deleteWorkout=function(i){ if(workouts[selectedDay]){ workouts[selectedDay].splice(i,1); save(); render(); } }
   window.complete=function(i){ if(workouts[selectedDay]&&workouts[selectedDay][i]){ workouts[selectedDay][i].done=true; save(); confetti(); render(); } }
   window.setDetails=function(i,v){ if(workouts[selectedDay]&&workouts[selectedDay][i]){ workouts[selectedDay][i].details=v; save(); } }
   window.setForm=function(v){ formScore=v; save(); render(); }
-  window.resetWeek=function(){ Object.keys(workouts).forEach(d=>{ workouts[d].forEach(w=>w.done=false); }); save(); render(); }
+  window.setWeekGoal=function(v){ weekGoal=v; save(); render(); }
+  window.resetWeek=function(){ Object.keys(workouts).forEach(d=>workouts[d].forEach(w=>w.done=false)); save(); render(); }
 
-  function save(){ localStorage.setItem('workouts',JSON.stringify(workouts)); localStorage.setItem('formScore',formScore); }
-
-  function confetti(){
-    for(let i=0;i<30;i++){
-      const c=document.createElement('div');
-      c.className='confetti';
-      c.style.left=Math.random()*100+'%';
-      c.style.background=`hsl(${Math.random()*360},100%,50%)`;
-      document.body.appendChild(c);
-      setTimeout(()=>c.remove(),1200);
+  // --- Swipe logic ---
+  let touchStartX=null;
+  document.addEventListener('touchstart',e=>{ touchStartX=e.changedTouches[0].screenX; });
+  document.addEventListener('touchend',e=>{
+    if(touchStartX===null) return;
+    const dx=e.changedTouches[0].screenX - touchStartX;
+    if(screen==='day'){
+      const idx=days.indexOf(selectedDay);
+      if(dx>50 && idx>0) selectedDay=days[idx-1];
+      if(dx<-50 && idx<days.length-1) selectedDay=days[idx+1];
+      render();
     }
-  }
+    touchStartX=null;
+  });
 
   function render(){
     const app=document.getElementById('app'); if(!app) return;
     switch(screen){
       case 'home':
         app.innerHTML=`
-          <h1>⚡ TRAINING ULTIMATE PRO</h1>
+          <h1>⚡ TRAINING ULTIMATE PRO 2.0</h1>
           <div class="card">
             <button onclick="go('profile')">📊 Profile</button>
             <button onclick="go('training')">🏋️ Training</button>
             <button onclick="go('edit')">✏️ Edit</button>
             <button onclick="go('progress')">📈 Weekly Progress</button>
-            <button onclick="resetWeek()" style="margin-top:10px;">🔄 Reset Week</button>
+            <button onclick="resetWeek()">🔄 Reset Week</button>
           </div>`; break;
 
       case 'profile':
@@ -136,17 +114,17 @@ button:active { animation:pulse 0.3s; }
             <p class="stat">🔥 Total økter: ${total}</p>
             <p class="stat">✅ Fullført: ${completed}</p>
             <p class="stat">⚡ Form: ${formScore}/10</p>
+            <p class="week-goal">🎯 Ukemål: ${weekGoal} økter</p>
           </div>
           <input type="range" min="1" max="10" value="${formScore}" onchange="setForm(this.value)">
+          <input type="number" min="1" max="20" value="${weekGoal}" onchange="setWeekGoal(this.value)">
           <button class="back" onclick="go('home')">⬅️ Back</button>`; break;
 
       case 'training':
         app.innerHTML=`
           <h1>🏋️ Training</h1>
           <div class="swipe-hint">⬅️ Swipe dag eller trykk en dag</div>
-          <div class="card day-grid">
-            ${Object.keys(workouts).map(d=>`<button class="day-btn" onclick="selectDay('${d}')">📅 ${d}</button>`).join('')}
-          </div>
+          <div class="card day-grid">${days.map(d=>`<button class="day-btn" onclick="selectDay('${d}')">📅 ${d}</button>`).join('')}</div>
           <button class="back" onclick="go('home')">⬅️ Back</button>`; break;
 
       case 'day':
@@ -171,9 +149,7 @@ button:active { animation:pulse 0.3s; }
       case 'edit':
         app.innerHTML=`
           <h1>✏️ Edit</h1>
-          <div class="card day-grid">
-            ${Object.keys(workouts).map(d=>`<button class="day-btn" onclick="editDay('${d}')">✏️ ${d}</button>`).join('')}
-          </div>
+          <div class="card day-grid">${days.map(d=>`<button class="day-btn" onclick="editDay('${d}')">✏️ ${d}</button>`).join('')}</div>
           <button class="back" onclick="go('home')">⬅️ Back</button>`; break;
 
       case 'editDay':
@@ -186,8 +162,7 @@ button:active { animation:pulse 0.3s; }
             <button onclick="addExercise(${i})">➕ Legg til øvelse</button>
             ${w.exercises.length>0?'<ul class="exercise-list">'+w.exercises.map(e=>`<li>${e}</li>`).join('')+'</ul>':''}
           </div>`).join('');
-        app.innerHTML=`
-          <h1>${selectedDay}</h1>${editList}
+        app.innerHTML=`<h1>${selectedDay}</h1>${editList}
           <input id="input" placeholder="Ny økt...">
           <input id="detailsInput" placeholder="Detaljer...">
           <button onclick="addWorkout()">➕ Legg til økt</button>
@@ -202,10 +177,9 @@ button:active { animation:pulse 0.3s; }
           <h1>📈 Weekly Progress</h1>
           <div class="card">
             <p>Fullført: ${comp}/${tot} økter</p>
-            <div style="background:#334155;border-radius:10px;overflow:hidden;height:20px;margin-top:10px;">
-              <div style="width:${percent}%;background:#22c55e;height:100%; transition:width 0.3s;"></div>
-            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${percent}%;"></div></div>
             <p>${percent}% ferdig</p>
+            <p class="week-goal">🎯 Ukemål: ${weekGoal} økter</p>
           </div>
           <button class="back" onclick="go('home')">⬅️ Back</button>`; break;
     }
